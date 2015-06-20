@@ -57,7 +57,7 @@ and see the HTML code here:
 <p class="users-online " title="logged-in users viewing this subreddit in the past 15 minutes">
 	<span class="number">192</span>&#32;<span class="word">users here now</span>
 </p>
-``
+```
 
 Now, Q: how to I fetch a small block of info from this HTML page?
 
