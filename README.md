@@ -13,29 +13,29 @@ Goals:
 
 Disclaimer: I'm neither a developper nor a devops and I don't intend to be one! Please bear with me. This is an exercice and not production code.
 
-*** LEARNING BY TRYING THINGS - v1 ***
+## *** LEARNING BY TRYING THINGS - v1 ***
 
-(0) Pre-requisites
+#### (0) Pre-requisites
 
 You should know a bit of docker, a bit of HTML/CSS, a bit of bash scripting and a few other things. Also, on your Linux host, you should have docker and git installed and ready for prime time. If you follow the script below, everything should be fine and you will end up with an env. up and running. Some lines will have to be drawn between the dots ... experiment!
 
-(0.1) What is docker?
+###### (0.1) What is docker?
 
 https://www.docker.com/
 
-(0.2) Where to test all this?
+###### (0.2) Where to test all this?
 
 On your environment (workstation)? On a linux server in your lab? On a CoreOS image on AWS EC2 (some "free" resources on AWS account for 1 year)? 
 
 http://aws.amazon.com/ec2/
 
-(1) Intro
+#### (1) Intro
 
-(1.1) What is reddit?
+###### (1.1) What is reddit?
 
 https://www.reddit.com/about/
 
-(1.2) What's the end goal of this project?
+###### (1.2) What's the end goal of this project?
 
 to collect the number of users looking at a subreddit, and plot this metric on a graph over time. Example:
 
@@ -43,9 +43,9 @@ https://www.reddit.com/r/Guitar/
 
 241 Guitarists (looking at the page)
 
-(2) Capturing the data
+#### (2) Capturing the data
 
-(2.1) curl is your (old) friend
+###### (2.1) curl is your (old) friend
 
 ```
 # curl -s http://www.reddit.com/r/Guitar
@@ -63,7 +63,7 @@ Now, Q: how to I fetch a small block of info from this HTML page?
 
 A: using pup, a nice tool written in Go.
 
-(2.2) pup is your (new) friend
+###### (2.2) pup is your (new) friend
 
 https://github.com/ericchiang/pup
 
@@ -83,21 +83,26 @@ This is where docker is now also a friend. Let's install and run Go in a contain
 
 Now you have Go on your host, within a docker image ready to run. You can play with it. Let's go straight to the point and reuse an image with pup already installed.
 
+(2.2.2) Using a DOcker image with pup ready to go (...)
+
 ```
 # docker pull fredmeuh/pup:latest
 
-# docker run --rm fredmeuh/pup /bin/sh -c '/usr/bin/curl -s http://www.reddit.com/r/Guitar | /go/bin/pup ".users-online .number text{}"'
+# docker run \
+--rm \
+fredmeuh/pup \
+/bin/sh -c '/usr/bin/curl -s http://www.reddit.com/r/Guitar | /go/bin/pup ".users-online .number text{}"'
 ```
 
 (note the way the download is done ... one of the power of Docker)
 
 Cool ... I want more! What's next?
 
-(3) Retaining the data 
+#### (3) Retaining the data 
 
-(3.1) InfluxDB may be my new friend
+###### (3.1) InfluxDB may be my new friend
 
-Many different DB solutions out there. I don't think there is one solution which fits all needs. Here we want to retain time series data (<timestamp>, <value>) and InfluxDB is a new solution in this space. Let's test it!
+Many different DB solutions out there. I don't think there is one solution which fits all needs. Here we want to retain time series data (< timestamp >, < value >) and InfluxDB is a new solution in this space. Let's test it!
 
 (0.9 is the latest stable release, the rest of the exercice won't work on pre-0.9)
 
@@ -129,7 +134,7 @@ go to explore data section, run a request:
 
 no data ...
 
-(3.2) Let's push some data into this DB.
+###### (3.2) Let's push some data into this DB.
 
 (3.2.1) InfluxDB client library in Go
 
@@ -177,7 +182,7 @@ Then try it by using the code form the container through a Docker volume:
 /bin/sh -c 'echo `date +"%x:%X"` `/usr/bin/curl -s http://www.reddit.com/r/Guitar | /go/bin/pup ".users-online .number text{}"` Guitar | go run /go/tmp/docker-reddit-stats/influxdb/client/load2idb.go'
 ```
 
-(see the reference to $HOME, the docker inspect command - to get the IP of the docker container, infludb - the name of the docker container running our DB)
+(see the reference to $HOME, the docker inspect command - to get the IP of the docker container, with the reference to influxdb - the name of the docker container running our DB)
 
 run a request in the InfluxDB UI:
 	select value from nb_users;
@@ -201,15 +206,15 @@ fredmeuh/influxdb-go-lib \
 /go/tmp/docker-reddit-stats/influxdb/client/collect.sh Guitar 300
 ```
 
-(4) Presenting the data
+#### (4) Presenting the data
 
-(4.1) Why Grafana?
+###### (4.1) Why Grafana?
 
 Because it's the default dashboard UI for InfluxDB. Because it's close to Kibana that I want to investigate later.
 
 http://docs.grafana.org/datasources/influxdb/
 
-(4.2) Installing ... in a container I guess?
+###### (4.2) Installing ... in a container I guess?
 
 Yep, another container.
 
@@ -226,11 +231,13 @@ grafana/grafana
 
 (you need version 2.0+ to interface with influxdb 0.9)
 
-(4.3) And showing the data ... finally!
+###### (4.3) And showing the data ... finally!
 
 Use your browser to connect to port 3000 (user: admin / pwd: admin).
-Go the Data Sources, add a new one with type=InfluxDB 0.9.x, enter the url (with "http://" prefix), select access = direct (from the web browser), DB = reddit, user and pwd, and save.
-Go to "Home" and click on new (Dashboard), click on the left green bar, choose Add Panel then Graph. Click on the title, then edit. Select the "Metrics" tab, edit the line (edit button on the right) and enter:
+
+Go the Data Sources, add a new one with type=InfluxDB 0.9.x, enter the url (with "http://" prefix!), set as Defaut, select access = direct (from the web browser), DB = reddit, user and pwd, and save.
+
+Go to "Home" and click on New (Dashboard), click on the left green bar, choose Add Panel then Graph. Click on the title, then edit. Select the "Metrics" tab, edit the line (with the edit button on the right) and enter:
 
 SELECT value FROM nb_users where subreddit = 'Guitar'
 
@@ -238,22 +245,20 @@ then click on the eye on the left ...
 
 Here you go! =)
 
-(5) What do we have accomplish?
+#### (5) What do we have accomplish?
 
-curl to get a HTML web page from a web site
-pup to parse the HTML page and grab some data
-a Go program to load the data into InfluxDB
-Grafana to display the data
-all those services put into docker images and running as containers to simplify deployment
+curl to get a HTML web page from a web site.
+pup to parse the HTML page and grab some data.
+a Go program to load the data into InfluxDB.
+Grafana to display the data.
+all those services put into docker images and running as containers to simplify deployment.
 
-(6) Next steps
+#### (6) Next steps
 
 - deploy a fleet of containers using CoreOS fleet to collect multiple stats 
-- put all this data into a InfluxDB cluster 
+- put all this data into an InfluxDB cluster 
 - use a load balancer in front of Grafana
 
 Why all this? Just for the fun of it.
 
-
-
-
+-FME
